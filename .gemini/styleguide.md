@@ -291,3 +291,17 @@ To achieve high-velocity test execution and prevent pipeline bottlenecks, review
 *   **Eliminating Static Sleeps (CRITICAL / HIGH PRIORITY):**
     *   **Anti-pattern:** Relying on static `time.Sleep` calls based on legacy assumptions. **This is a critical performance issue that must be avoided and flagged as high priority.**
     *   **Correction:** The use of `gnmi.Watch` is mandatory to detect desired states in real-time. Wait times should not be hardcoded, as static sleeps become a fixed tax on the pipeline.
+
+### **6. Testbed & Topology Guidelines (CRITICAL / HIGH PRIORITY)**
+
+**Source:** `topologies/`
+
+To preserve lab device availability and avoid reservation bottlenecks across testbeds, reviewers MUST flag overly complex, high-link-count, or mixed-speed topology choices:
+
+*   **Avoid Complex and High-Link-Count Topologies (e.g., 8-Link Testbeds):**
+    *   **Anti-pattern:** Selecting complex multi-device or high-link-count topologies (such as 8-link or larger testbeds like `atedut_8.testbed`, `dut_8_loop_2_ate.testbed`, `dutdutate_8.testbed`, or `atedut_12.testbed`) for functional tests that do not strictly require that link count. High-link-count topologies severely restrict testbed availability across labs, increase reservation contention, and cause avoidable scheduling failures.
+    *   **Correction:** Always choose the minimal topology required to exercise the feature under test (for example, `atedut_2.testbed`, `atedut_4.testbed`, `dut_2links.testbed`, `dut_1_loop_<speed>.testbed`, or `dut.testbed`). Reserve 8-link and higher-port-count topologies strictly for dedicated multi-link scale or wide-ECMP/LAG fanout tests that cannot be verified on `<= 4` links.
+
+*   **Avoid Mixed-Speed Topologies — Split Speed Tiers Into Separate Tests:**
+    *   **Anti-pattern:** Combining multiple port speeds in a single testbed or single test suite (for example, mixed `400G` + `100G` topologies such as `dut_400zr_100g_4links.testbed` or `dut_400fr_100g_4links.testbed`), or requiring a single DUT reservation to provide heterogeneous link speeds simultaneously. Mixed-speed topologies dramatically shrink the pool of eligible lab testbeds and couple test execution across unrelated speed tiers.
+    *   **Correction:** Keep testbeds single-speed and split multi-speed coverage into separate, speed-scoped test targets and single-speed testbeds (for example, separate `*_100g_test`, `*_400g_test`, and `*_800g_test` directories backed by `dut_1_loop_100g.testbed`, `dut_1_loop_400g.testbed`, and `dut_1_loop_800g.testbed` with a shared `internal/` helper package when test logic is common). Reviewers MUST flag new or updated tests introducing mixed-speed testbeds or multi-speed combined suites and require splitting them into separate single-speed tests so device availability is not impacted.
